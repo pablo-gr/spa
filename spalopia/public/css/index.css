@@ -1,0 +1,6 @@
+.body-container {padding: 1rem}
+#loading {margin-left: 1rem}
+.hidden {display: none;}
+.column-service-name {width: 200px}
+#hour-list-error-container td {text-align: center; color: red; padding-bottom: 1rem;}
+#hour-list-container td, .hour-list-item.last-child td {padding-bottom: 1rem;}

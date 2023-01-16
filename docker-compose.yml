@@ -1,0 +1,59 @@
+version: "3.2"
+
+services:
+  nginx:
+    container_name: spalopia_nginx
+    build:
+      args:
+        NGINX_FILE: docker/nginx/conf/nginx.conf
+        CONF_FILE: docker/nginx/conf/app.conf
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "${NGIX_PORT}:1000"
+    volumes:
+      - ./spalopia/public:/spalopia/public:delegated
+    depends_on:
+      - php
+    networks:
+      - spalopia-network
+
+  db:
+    image: postgres
+    container_name: spalopia_db
+    volumes:
+      - ./docker/postgres/init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_NAME=${POSTGRES_NAME}
+      - POSTGRES_NAME_TEST=${POSTGRES_NAME_TEST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    networks:
+      - spalopia-network
+
+  php:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+      args:
+        - HOST_GID=${HOST_GID}
+        - HOST_UID=${HOST_UID}
+        - XDEBUG_CLIENT_PORT=${XDEBUG_CLIENT_PORT}
+        - WITH_XDEBUG=${WITH_XDEBUG}
+    container_name: spalopia_php
+    volumes:
+      - ./spalopia:/spalopia
+    depends_on:
+      - db
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - spalopia-network
+
+networks:
+  spalopia-network:
+    driver: bridge
+

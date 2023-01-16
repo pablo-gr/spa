@@ -1,0 +1,92 @@
+{
+	"info": {
+		"_postman_id": "57ad30c9-6c67-4b8b-aa0b-2013eb5c21cc",
+		"name": "spalopia",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15387636"
+	},
+	"item": [
+		{
+			"name": "list services",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/service",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"service"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get available hours",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/service/{{serviceId}}/available-hours/{{date}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"service",
+						"{{serviceId}}",
+						"available-hours",
+						"{{date}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create booking",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "id",
+							"value": "{{serviceId}}",
+							"type": "text"
+						},
+						{
+							"key": "date",
+							"value": "{{dateHour}}",
+							"type": "text"
+						},
+						{
+							"key": "client-name",
+							"value": "John Doe",
+							"type": "text"
+						},
+						{
+							"key": "client-email",
+							"value": "john.doe@testemail.com",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/booking",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"booking"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

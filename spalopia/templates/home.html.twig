@@ -1,0 +1,181 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Service List</h1>
+
+    <div id="service-list-container">
+        <table>
+            <head>
+                <tr>
+                    <th>Service</th>
+                    <th>Action</th>
+                </tr>
+            </head>
+            <tbody id="service-list-body"></tbody>
+        </table>
+        <button id="load-more-services">load more</button>
+        <em id="not-more-services" class="hidden">not more service</em>
+    </div>
+
+    <h3 class="hidden" id="loading">Loading ...</h3>
+
+    <script>
+        let page = 1;
+
+        const cleanAddons = () => {
+            $('#hour-list-container').remove();
+            $('#hour-list-error-container').remove();
+            $('.hour-list-item').remove();
+        }
+
+        const validateEmail = (mail) => {
+            if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(mail))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        const onChangeBookingForm = () => {
+            if ($('#client-name').val() && $('#client-email').val() && validateEmail($('#client-email').val())) {
+                $('#create-booking-btn').removeAttr('disabled');
+            } else {
+                $('#create-booking-btn').attr('disabled', true);
+            }
+        }
+
+        const createBooking = (id) => {
+            const usDate = new Date($('#date').val());
+            $.post('/api/booking', {
+                id,
+                date: usDate.toLocaleString('us'),
+                'client-name': $('#client-name').val(),
+                'client-email': $('#client-email').val(),
+            }, () => {
+                console.log('ok');
+                cleanAddons();
+            }).fail((err) => {
+                if (err?.responseJSON && err?.responseJSON.error) {
+                    $('#data-srv-' + id + '').after(
+                        '<tr id="hour-list-error-container">' +
+                        '<td colspan="2">' + err.responseJSON.error + '</td>' +
+                        '</tr>'
+                    );
+                }
+            });
+        }
+
+        const viewBookingForm = (startAt, id) => {
+            const date = new Date(startAt);
+            cleanAddons();
+            $('#data-srv-' + id + '').after(
+                '<tr id="hour-list-container">' +
+                '<td colspan="2">' +
+                '<table><tbody>' +
+                '<tr><td><label for="date">Date:&nbsp;</label></td><td><input id="date" value="' + date.toLocaleString() + '" readonly="true" type="datetime"/></td></tr>' +
+                '<tr><td><label for="client-name">Client Name:&nbsp;</label></td><td><input id="client-name" value="John Dow" placeholder="Write the client name" onchange="onChangeBookingForm()" onblur="onChangeBookingForm()"/></td></tr>' +
+                '<tr><td><label for="client-email">Client Email:&nbsp;</label></td><td><input id="client-email" value="john.doe@testemail.com" placeholder="Write the client email" type="email" onchange="onChangeBookingForm()" onblur="onChangeBookingForm()" /></td></tr>' +
+                '<tr><td colspan="2"><button id="create-booking-btn" onclick="createBooking(' + id + ')">create</button></td></tr>' +
+                '</tbody></table>' +
+                '</td>' +
+                '</tr>'
+            );
+        }
+
+        const loadHours = (id) => {
+            $('#hour-list-error-container').remove();
+            $('.hour-list-item').remove();
+            const val = $('#hour-list-container input').val();
+            if (val) {
+                $('#hour-list-container').remove();
+
+                $.get('/api/service/' + id + '/available-hours/' + val, (data) => {
+                    if (data.length === 0) {
+                        $('#data-srv-' + id + '').after(
+                            '<tr class="hour-list-item">' +
+                            '<td colspan="2">no available hours for booking</td>' +
+                            '</tr>'
+                        );
+                    }
+
+                    let trs = '';
+                    data.forEach((hour, index) => {
+                        const start = new Date(hour.start_at.date);
+                        const end = new Date(hour.end_at.date);
+
+                        trs +=
+                            '<tr class="hour-list-item ' + (index === data.length - 1 ? 'last-child' : '') + '">' +
+                            '<td>' + start.toLocaleTimeString() + ' - ' + end.toLocaleTimeString() + '</td>' +
+                            '<td><button onclick="viewBookingForm(\'' + hour.start_at.date + '\', ' + id + ')">create booking</button></td>' +
+                            '</tr>';
+                    });
+                    $('#data-srv-' + id + '').after(trs);
+
+                }).fail((err) => {
+                    if (err?.responseJSON && err?.responseJSON.error) {
+                        $('#data-srv-' + id + '').after(
+                            '<tr id="hour-list-error-container">' +
+                            '<td colspan="2">' + err.responseJSON.error + '</td>' +
+                            '</tr>'
+                        );
+                    }
+                });
+            } else {
+                $('#data-srv-' + id + '').after(
+                    '<tr id="hour-list-error-container">' +
+                    '<td colspan="2">please, choose a date to search</td>' +
+                    '</tr>'
+                );
+            }
+        }
+
+        const viewHours = (id) => {
+            cleanAddons();
+            $('#data-srv-' + id + '').after(
+                '<tr id="hour-list-container">' +
+                '<td><input type="date" placeholder="select date to search" value="2023-01-10" /></td>' +
+                '<td><button onclick="javascript: loadHours('+ id +')">search</button></td>' +
+                '</tr>'
+            );
+        }
+
+        const loadServices = () => {
+            cleanAddons();
+            $('#service-list-container').addClass('hidden');
+            $('#loading').removeClass('hidden');
+
+            $.get('/api/service?limit=5&page=' + page, (data) => {
+                if (data.length === 0) {
+                    $('#load-more-services').addClass('hidden');
+                    $('#not-more-services').removeClass('hidden');
+                }
+
+                data.forEach((srv) => {
+                    $(
+                        '<tr id="data-srv-' + srv.id + '">' +
+                        '<td class="column-service-name">' + srv.name + '</td>' +
+                        '<td><a href="javascript: viewHours(' + srv.id + ')">available hours</a><td>' +
+                        '</tr>'
+                    )
+                        .appendTo($('#service-list-body'));
+                });
+            }).always(() => {
+                $('#loading').addClass('hidden');
+                $('#service-list-container').removeClass('hidden');
+            });
+        }
+
+        (function($, window, document) {
+            $(document).ready(() => {
+                $('#load-more-services').click((e) => {
+                    e.preventDefault();
+                    page++;
+                    loadServices();
+                });
+
+                loadServices();
+            });
+        }(window.jQuery, window, document));
+    </script>
+{% endblock %}
+
